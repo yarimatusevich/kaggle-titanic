@@ -1,29 +1,54 @@
-from data import get_data
+import pandas as pd
+from pandas import DataFrame
 
-from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report
+from sklearn.metrics import accuracy_score, precision_score, recall_score
 
-df = get_data()
+# loading data
+train = pd.read_csv('titanic/train.csv')
+test = pd.read_csv('titanic/test.csv')
+submissions = pd.read_csv('titanic/gender_submission.csv')
 
-# Features (What model is looking at to make prediction)
-X = df[['peak', 'gene', 'Pair']]
+# seperating features and targets
+X_train = train.drop(columns=['Survived','PassengerId', 'Name', 'Ticket', 'Cabin'])
+y_train = train['Survived']
+X_test = test.drop(columns=['PassengerId', 'Name', 'Ticket', 'Cabin'])
+y_test = submissions['Survived']
+ids = test['PassengerId']
 
-# Target (True/False)
-y = df['Peak2Gene']
+# cleaning up age column
+age_median = train['Age'].median()
+train['Age'].fillna(age_median, inplace=True)
+test['Age'].fillna(age_median, inplace=True)
 
-# The split shufflers data around 'random_state=42' means we are basically setting a seed for the random shuffle
-# As long as we decalre random_state our accuracy will be consistent because the same data will always be used for training and testing
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=2004
-)
+# encoding categorial variables
+sex_dict = {'male': 0, 'female': 1}
+embarked_dict = {'C': 0, 'S': 1, 'Q': 2}
 
-model = RandomForestClassifier(random_state=2004)
-model.fit(X_train, y_train)
+X_train['Sex'] = X_train['Sex'].map(sex_dict)
+X_train['Embarked'] = X_train['Embarked'].map(embarked_dict)
 
-y_predictions = model.predict(X_test)
-print(classification_report(y_true=y_test,y_pred=y_predictions))
+X_test['Sex'] = X_test['Sex'].map(sex_dict)
+X_test['Embarked'] = X_test['Embarked'].map(embarked_dict)
 
-"""
-common_cells = rna.columns.intersection(atac.columns)
-"""
+# creating model
+model = RandomForestClassifier(n_estimators=3000, random_state=2004)
+
+# training model
+model.fit(X=X_train, y=y_train)
+
+# prediction and model metrics
+y_pred = model.predict(X=X_test)
+
+acc = accuracy_score(y_true=y_test, y_pred=y_pred)
+prec = precision_score(y_true=y_test, y_pred=y_pred, average='binary')
+recall = recall_score(y_true=y_test, y_pred=y_pred, average='binary')
+
+results = pd.DataFrame({
+    'PassengerId': ids,
+    'Prediction': y_pred
+})
+
+results.to_csv('predictions.csv', index=False)
+
+print(f'acc: {acc}, prev: {prec}, recall: {recall}')
