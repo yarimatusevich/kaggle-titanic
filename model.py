@@ -1,5 +1,4 @@
 import pandas as pd
-from pandas import DataFrame
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score
