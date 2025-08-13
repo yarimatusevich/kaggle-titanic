@@ -1,4 +1,6 @@
 .venv
 data/
+titanic/
 .DS_Store
 __pycache__
+predictions.csv
